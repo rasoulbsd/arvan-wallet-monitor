@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  arvan-monitor:
+    build: .
+    env_file: .env
+    container_name: arvan-wallet-monitor
+    restart: unless-stopped
