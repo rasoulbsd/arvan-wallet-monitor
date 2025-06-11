@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -9,9 +10,40 @@ const THRESHOLD = parseInt(process.env.WALLET_THRESHOLD, 10);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TOPIC_ID = process.env.TELEGRAM_TOPIC_ID;
-
 const CHECK_INTERVAL_HOURS = parseInt(process.env.CHECK_INTERVAL_HOURS || '6', 10);
 const INTERVAL_MS = CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
+const MSG_LOG = './sent-messages.json';
+
+function saveMessageId(id) {
+  try {
+    let ids = [];
+    if (fs.existsSync(MSG_LOG)) {
+      ids = JSON.parse(fs.readFileSync(MSG_LOG));
+    }
+    ids.push(id);
+    fs.writeFileSync(MSG_LOG, JSON.stringify(ids));
+  } catch (err) {
+    console.warn('[WARN] Could not save message ID:', err.message);
+  }
+}
+
+function getSavedMessageIds() {
+  try {
+    if (!fs.existsSync(MSG_LOG)) return [];
+    return JSON.parse(fs.readFileSync(MSG_LOG));
+  } catch (err) {
+    console.warn('[WARN] Could not read message log:', err.message);
+    return [];
+  }
+}
+
+function clearMessageLog() {
+  try {
+    fs.writeFileSync(MSG_LOG, JSON.stringify([]));
+  } catch (err) {
+    console.warn('[WARN] Could not clear message log:', err.message);
+  }
+}
 
 async function login() {
   const res = await axios.post('https://dejban.arvancloud.ir/v1/auth/login', {
@@ -63,7 +95,30 @@ async function notifyTelegram(balance) {
     text: msg
   };
   if (TOPIC_ID) payload.message_thread_id = parseInt(TOPIC_ID);
-  await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, payload);
+
+  const res = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, payload);
+  const messageId = res.data.result.message_id;
+  saveMessageId(messageId);
+}
+
+async function deleteOldMessages() {
+  const oldMessages = getSavedMessageIds();
+  const remaining = [];
+
+  for (const msgId of oldMessages) {
+    try {
+      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+        chat_id: CHAT_ID,
+        message_id: msgId
+      });
+      console.log(`✅ Deleted alert message: ${msgId}`);
+    } catch (err) {
+      console.warn(`⚠️ Could not delete message ${msgId}:`, err.response?.data || err.message);
+      remaining.push(msgId); // Keep only those that failed
+    }
+  }
+
+  fs.writeFileSync(MSG_LOG, JSON.stringify(remaining));
 }
 
 async function checkWalletOnce() {
@@ -77,6 +132,9 @@ async function checkWalletOnce() {
     if (balance < THRESHOLD) {
       console.log(`❗ Balance below threshold (${THRESHOLD})`);
       await notifyTelegram(balance);
+    } else {
+      console.log(`✅ Balance is healthy. Deleting old alert messages if any.`);
+      await deleteOldMessages();
     }
   } catch (err) {
     console.error('[ERROR]', err.response?.data || err.message);
@@ -84,7 +142,7 @@ async function checkWalletOnce() {
 }
 
 async function startLoop() {
-  console.log(`Starting Arvan wallet monitor. Interval: ${CHECK_INTERVAL_HOURS}h`);
+  console.log(`🔁 Starting Arvan wallet monitor. Every ${CHECK_INTERVAL_HOURS}h`);
   await checkWalletOnce();
   setInterval(checkWalletOnce, INTERVAL_MS);
 }
