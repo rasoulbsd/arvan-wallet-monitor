@@ -1,8 +1,16 @@
 {
-  "name": "arvan-wallet-monitor",
+  "name": "arvan_hamravesh-wallet-monitoring",
   "version": "1.0.0",
-  "main": "arvan-wallet-check.js",
+  "description": "Monitors ArvanCloud and Hamravesh wallet balances and sends Telegram alerts for low balances.",
+  "main": "arvan/arvan-wallet-check.js",
   "type": "module",
+  "scripts": {
+    "start:arvan": "node arvan/arvan-wallet-check.js",
+    "start:hamravesh": "node hamravesh/hamravesh-monitor.js",
+    "docker": "docker-compose up --build -d"
+  },
+  "author": "Arvan & Hamravesh Wallet Monitoring Team",
+  "license": "UNLICENSED",
   "dependencies": {
     "axios": "^1.10.0",
     "dotenv": "^16.3.1"

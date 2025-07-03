@@ -7,7 +7,7 @@ This repository contains monitoring scripts for both ArvanCloud and Hamravesh wa
 - `arvan/` - ArvanCloud wallet monitoring code
 - `hamravesh/` - Hamravesh wallet monitoring code
 - `data/` - Data storage (if needed)
-- `sent-messages.json` - Stores the latest Telegram alert message ID
+- `sent-messages.json` - Stores arrays of Telegram alert message IDs per provider (for deleting all alerts)
 
 ## Environment Variables
 
@@ -65,17 +65,20 @@ This will start two services:
 
 ## Telegram Alerts
 
-- Only one alert message is kept per provider. If the balance is low, the alert is updated in place.
-- When the balance is healthy, the alert is deleted.
-- The alert format is:
+Each provider tracks all alert messages it sends in an array in `sent-messages.json`. If multiple alert messages are sent in a row (e.g., due to errors or retries), all are tracked and will be deleted when the balance is healthy.
+
+The alert format is:
 
 ```
-⚠️ <Provider> Wallet Low Balance (bolded)
+⚠️🟦 Arvan Wallet Low Balance
+⚠️🟪 Hamravesh Wallet Low Balance
+```
+Treshold: 3,000,000 T (or IRR)
+Current Balance: 2,382,784 T (or IRR)
 
-```
-Treshold: 3,000,000 T
-Current Balance: 2,382,784 T
-```
+The colored icon indicates the provider:
+- 🟦 for Arvan
+- 🟪 for Hamravesh
 
 ## Adding More Providers
 
@@ -134,7 +137,11 @@ That's it. The monitor runs inside the container and checks your wallet every 6 
 
 ## 💬 Example Telegram Message
 ```
-⚠️ Arvan Wallet Low Balance: 1,234,567 T
+⚠️🟦 Arvan Wallet Low Balance: 1,234,567 T
+```
+or
+```
+⚠️🟪 Hamravesh Wallet Low Balance: 1,234,567 IRR
 ```
 
 ## 🛠️ Development

@@ -7,4 +7,4 @@ RUN npm install
 
 COPY . .
 
-CMD ["node", "arvan-wallet-check.js"]
+# No default CMD; docker-compose.yml will specify the command
