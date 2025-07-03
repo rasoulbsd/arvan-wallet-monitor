@@ -4,7 +4,7 @@
   "main": "arvan-wallet-check.js",
   "type": "module",
   "dependencies": {
-    "axios": "^1.9.0",
+    "axios": "^1.10.0",
     "dotenv": "^16.3.1"
   }
 }

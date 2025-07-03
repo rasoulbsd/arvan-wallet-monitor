@@ -1,6 +1,85 @@
-# ArvanCloud Wallet Monitor 🕵️‍♂️
+# Arvan & Hamravesh Wallet Monitor
 
-A fully Dockerized Node.js service that monitors your [ArvanCloud](https://www.arvancloud.ir/) wallet balance and sends alerts via Telegram if the balance drops below a custom threshold.
+This repository contains monitoring scripts for both ArvanCloud and Hamravesh wallets, organized in separate directories for clarity and maintainability.
+
+## Structure
+
+- `arvan/` - ArvanCloud wallet monitoring code
+- `hamravesh/` - Hamravesh wallet monitoring code
+- `data/` - Data storage (if needed)
+- `sent-messages.json` - Stores the latest Telegram alert message ID
+
+## Environment Variables
+
+Create a `.env` file in the root with the following content:
+
+```env
+# ArvanCloud
+ARVAN_EMAIL=your_arvancloud_email@example.com
+ARVAN_PASSWORD=your_arvancloud_password
+ARVAN_WALLET_THRESHOLD=1000000
+ARVAN_TELEGRAM_BOT_TOKEN=your_arvancloud_telegram_bot_token
+ARVAN_TELEGRAM_CHAT_ID=your_arvancloud_telegram_chat_id
+ARVAN_TELEGRAM_TOPIC_ID=your_arvancloud_telegram_topic_id
+
+# Hamravesh
+HAMRAVESH_EMAIL=your_hamravesh_email@example.com
+HAMRAVESH_PASSWORD=your_hamravesh_password
+HAMRAVESH_WALLET_THRESHOLD=1000000
+HAMRAVESH_TELEGRAM_BOT_TOKEN=your_hamravesh_telegram_bot_token
+HAMRAVESH_TELEGRAM_CHAT_ID=your_hamravesh_telegram_chat_id
+HAMRAVESH_TELEGRAM_TOPIC_ID=your_hamravesh_telegram_topic_id
+HAMRAVESH_COOKIE=your_hamravesh_cookie_string
+
+# Common
+CHECK_INTERVAL_HOURS=6
+```
+
+- Each provider can use a different Telegram bot, chat/group/channel, and threshold.
+- If you use a group or channel, set the correct chat ID and bot permissions.
+
+## Usage
+
+### Locally
+
+- **ArvanCloud:**
+  ```bash
+  node arvan/arvan-wallet-check.js
+  ```
+- **Hamravesh:**
+  ```bash
+  node hamravesh/hamravesh-monitor.js
+  ```
+
+### Docker Compose
+
+To run both monitors in parallel:
+
+```bash
+docker-compose up --build -d
+```
+
+This will start two services:
+- `arvan-monitor` (ArvanCloud)
+- `hamravesh-monitor` (Hamravesh)
+
+## Telegram Alerts
+
+- Only one alert message is kept per provider. If the balance is low, the alert is updated in place.
+- When the balance is healthy, the alert is deleted.
+- The alert format is:
+
+```
+⚠️ <Provider> Wallet Low Balance (bolded)
+
+```
+Treshold: 3,000,000 T
+Current Balance: 2,382,784 T
+```
+
+## Adding More Providers
+
+To add more wallet monitors, create a new directory (e.g., `newprovider/`) and follow the same pattern with provider-specific environment variables.
 
 ## ⚙️ Features
 
@@ -39,7 +118,7 @@ Edit .env and fill in your ArvanCloud credentials and Telegram bot info.
 ```bash
 docker-compose up --build -d
 ```
-That’s it. The monitor runs inside the container and checks your wallet every 6 hours by default.
+That's it. The monitor runs inside the container and checks your wallet every 6 hours by default.
 
 ## ⚙️ Environment Variables
 

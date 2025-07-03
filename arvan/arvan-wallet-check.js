@@ -6,40 +6,36 @@ dotenv.config();
 
 const EMAIL = process.env.ARVAN_EMAIL;
 const PASSWORD = process.env.ARVAN_PASSWORD;
-const THRESHOLD = parseInt(process.env.WALLET_THRESHOLD, 10);
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const TOPIC_ID = process.env.TELEGRAM_TOPIC_ID;
-const CHECK_INTERVAL_HOURS = parseInt(process.env.CHECK_INTERVAL_HOURS || '6', 10);
+const THRESHOLD = parseInt(process.env.ARVAN_WALLET_THRESHOLD, 10);
+const BOT_TOKEN = process.env.ARVAN_TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.ARVAN_TELEGRAM_CHAT_ID;
+const TOPIC_ID = process.env.ARVAN_TELEGRAM_TOPIC_ID;
+const CHECK_INTERVAL_HOURS = parseInt(process.env.ARVAN_CHECK_INTERVAL_HOURS || '6', 10);
 const INTERVAL_MS = CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
 const MSG_LOG = './sent-messages.json';
 
 function saveMessageId(id) {
   try {
-    let ids = [];
-    if (fs.existsSync(MSG_LOG)) {
-      ids = JSON.parse(fs.readFileSync(MSG_LOG));
-    }
-    ids.push(id);
-    fs.writeFileSync(MSG_LOG, JSON.stringify(ids));
+    fs.writeFileSync(MSG_LOG, JSON.stringify({ id }), "utf8");
   } catch (err) {
     console.warn('[WARN] Could not save message ID:', err.message);
   }
 }
 
-function getSavedMessageIds() {
+function getSavedMessageId() {
   try {
-    if (!fs.existsSync(MSG_LOG)) return [];
-    return JSON.parse(fs.readFileSync(MSG_LOG));
+    if (!fs.existsSync(MSG_LOG)) return null;
+    const data = JSON.parse(fs.readFileSync(MSG_LOG));
+    return data.id || null;
   } catch (err) {
     console.warn('[WARN] Could not read message log:', err.message);
-    return [];
+    return null;
   }
 }
 
 function clearMessageLog() {
   try {
-    fs.writeFileSync(MSG_LOG, JSON.stringify([]));
+    fs.writeFileSync(MSG_LOG, JSON.stringify({}), "utf8");
   } catch (err) {
     console.warn('[WARN] Could not clear message log:', err.message);
   }
@@ -89,36 +85,50 @@ async function queryWallet(bearerToken) {
 
 async function notifyTelegram(balance) {
   const formatted = (Number(balance) / 10).toLocaleString('en-US');
-  const msg = `⚠️ Arvan Wallet Low Balance: ${formatted} T`;
+  const thresholdFormatted = (Number(THRESHOLD) / 10).toLocaleString('en-US');
+  const msg = `*⚠️ Arvan Wallet Low Balance*\n\n\`\`\`\nTreshold: ${thresholdFormatted} T\nCurrent Balance: ${formatted} T\n\`\`\``;
   const payload = {
     chat_id: CHAT_ID,
-    text: msg
+    text: msg,
+    parse_mode: 'Markdown'
   };
   if (TOPIC_ID) payload.message_thread_id = parseInt(TOPIC_ID);
 
-  const res = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, payload);
-  const messageId = res.data.result.message_id;
+  const prevMsgId = getSavedMessageId();
+  let messageId;
+  if (prevMsgId) {
+    // Try to edit the previous message
+    try {
+      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+        ...payload,
+        message_id: prevMsgId
+      });
+      messageId = prevMsgId;
+    } catch (err) {
+      // If edit fails (e.g., message deleted), send a new one
+      const res = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, payload);
+      messageId = res.data.result.message_id;
+    }
+  } else {
+    const res = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, payload);
+    messageId = res.data.result.message_id;
+  }
   saveMessageId(messageId);
 }
 
 async function deleteOldMessages() {
-  const oldMessages = getSavedMessageIds();
-  const remaining = [];
-
-  for (const msgId of oldMessages) {
-    try {
-      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
-        chat_id: CHAT_ID,
-        message_id: msgId
-      });
-      console.log(`✅ Deleted alert message: ${msgId}`);
-    } catch (err) {
-      console.warn(`⚠️ Could not delete message ${msgId}:`, err.response?.data || err.message);
-      remaining.push(msgId); // Keep only those that failed
-    }
+  const msgId = getSavedMessageId();
+  if (!msgId) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+      chat_id: CHAT_ID,
+      message_id: msgId
+    });
+    console.log(`✅ Deleted alert message: ${msgId}`);
+    clearMessageLog();
+  } catch (err) {
+    console.warn(`⚠️ Could not delete message ${msgId}:`, err.response?.data || err.message);
   }
-
-  fs.writeFileSync(MSG_LOG, JSON.stringify(remaining));
 }
 
 async function checkWalletOnce() {
