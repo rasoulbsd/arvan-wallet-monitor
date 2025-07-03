@@ -12,11 +12,17 @@ const CHAT_ID = process.env.ARVAN_TELEGRAM_CHAT_ID;
 const TOPIC_ID = process.env.ARVAN_TELEGRAM_TOPIC_ID;
 const CHECK_INTERVAL_HOURS = parseInt(process.env.ARVAN_CHECK_INTERVAL_HOURS || '6', 10);
 const INTERVAL_MS = CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
-const MSG_LOG = './sent-messages.json';
+const MSG_LOG = './data/sent-messages.json';
 const PROVIDER_KEY = 'arvan';
 
 function saveMessageId(id) {
   try {
+    // Ensure data directory exists
+    const dataDir = './data';
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
     let data = {};
     if (fs.existsSync(MSG_LOG)) {
       data = JSON.parse(fs.readFileSync(MSG_LOG));

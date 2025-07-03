@@ -6,8 +6,8 @@ This repository contains monitoring scripts for both ArvanCloud and Hamravesh wa
 
 - `arvan/` - ArvanCloud wallet monitoring code
 - `hamravesh/` - Hamravesh wallet monitoring code
-- `data/` - Data storage (if needed)
-- `sent-messages.json` - Stores arrays of Telegram alert message IDs per provider (for deleting all alerts)
+- `data/` - Data storage directory
+- `data/sent-messages.json` - Stores arrays of Telegram alert message IDs per provider (for deleting all alerts)
 
 ## Environment Variables
 
