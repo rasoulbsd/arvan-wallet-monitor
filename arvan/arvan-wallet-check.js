@@ -153,7 +153,7 @@ async function checkWalletOnce() {
     const newAccessToken = await refreshTokenPair(accessToken, refreshToken, defaultAccount);
     const wallet = await queryWallet(`${newAccessToken}.${defaultAccount}`);
     const balance = parseInt(wallet.totalBalance, 10);
-    console.log(`[${new Date().toISOString()}] Wallet Balance: ${balance.toLocaleString('en-US')} IRR`);
+    console.log(`[${new Date().toISOString()}] Arvan Wallet Balance: ${balance.toLocaleString('en-US')} IRR`);
 
     if (balance < THRESHOLD) {
       console.log(`❗ Balance below threshold (${THRESHOLD})`);

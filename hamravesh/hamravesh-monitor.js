@@ -193,7 +193,7 @@ async function checkWalletOnce() {
     // Assume balance is in profile.organizations[0].balance
     const org = profile.organizations && profile.organizations[0];
     const balance = org ? org.balance : null;
-    console.log(`[${new Date().toISOString()}] Wallet Balance: ${balance}`);
+    console.log(`[${new Date().toISOString()}] Hamravesh Wallet Balance: ${balance?.toLocaleString('en-US') || 'N/A'} IRR`);
     if (balance !== null && balance < THRESHOLD) {
       console.log(`❗ Balance below threshold (${THRESHOLD})`);
       await notifyTelegram(balance);
